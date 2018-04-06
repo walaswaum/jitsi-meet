@@ -147,12 +147,17 @@ MiddlewareRegistry.register(store => next => action => {
  * with the specified {@code mediaType} is to be retrieved.
  * @param {MEDIA_TYPE} mediaType - The {@code MEDIA_TYPE} of the local track to
  * be retrieved from the specified {@code store}.
+ * @param {boolean} includePending - Indicates whether or not a pending track
+ * should be included in the result. Pending track is a track for which GUM is
+ * still in progress and it will not have it's 'jitsiTrack' field defined.
  * @private
  * @returns {Track} The local {@code Track} associated with the specified
  * {@code mediaType} in the specified {@code store}.
  */
-function _getLocalTrack({ getState }, mediaType: MEDIA_TYPE) {
-    return getLocalTrack(getState()['features/base/tracks'], mediaType);
+function _getLocalTrack(
+        { getState }, mediaType: MEDIA_TYPE, includePending: boolean = false) {
+    return getLocalTrack(
+        getState()['features/base/tracks'], mediaType, includePending);
 }
 
 /**
@@ -167,10 +172,14 @@ function _getLocalTrack({ getState }, mediaType: MEDIA_TYPE) {
  * @returns {void}
  */
 function _setMuted(store, { ensureTrack, muted }, mediaType: MEDIA_TYPE) {
-    const localTrack = _getLocalTrack(store, mediaType);
+    const localTrack
+        = _getLocalTrack(store, mediaType, true /* include GUM in progress */);
 
     if (localTrack) {
-        setTrackMuted(localTrack.jitsiTrack, muted);
+        // The 'jitsiTrack' field will have a value only for a track for which
+        // GUM process has already completed. If there's no 'jitsiTrack' then
+        // the muted state will be synced up once the track is created.
+        localTrack.jitsiTrack && setTrackMuted(localTrack.jitsiTrack, muted);
     } else if (!muted && ensureTrack && typeof APP === 'undefined') {
         // FIXME: This only runs on mobile now because web has its own way of
         // creating local tracks. Adjust the check once they are unified.

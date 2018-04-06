@@ -20,7 +20,7 @@ import {
     TRACK_UPDATED,
     TRACK_WILL_CREATE
 } from './actionTypes';
-import { createLocalTracksF } from './functions';
+import { createLocalTracksF, getLocalTrack, getLocalTracks } from './functions';
 
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 
@@ -45,8 +45,7 @@ export function createDesiredLocalTracks(...desiredTypes) {
         }
 
         const availableTypes
-            = state['features/base/tracks']
-                .filter(t => t.local)
+            = getLocalTracks(state['features/base/tracks'], true /* pending */)
                 .map(t => t.mediaType);
 
         // We need to create the desired tracks which are not already available.
@@ -85,8 +84,10 @@ export function createLocalTracksA(options = {}) {
         // to implement them) and the right thing to do is to ask for each
         // device separately.
         for (const device of devices) {
-            if (getState()['features/base/tracks']
-                    .find(t => t.local && t.mediaType === device)) {
+            if (getLocalTrack(
+                    getState()['features/base/tracks'],
+                    device,
+                    true /* include pending */)) {
                 throw new Error(`Local track for ${device} already exists`);
             }
 
